@@ -52,7 +52,7 @@ RWStream.prototype.getReadType = function (type) {
 
 const WriteStream = function () {
   RWStream.call(this);
-  this.defaultBufferSize = 512; // 512 bytes
+  this.defaultBufferSize = 625000; // 512 bytes
   this.rawBuffer = Buffer.alloc(this.defaultBufferSize);
   this.offset = 0;
   this.contentSize = 0;

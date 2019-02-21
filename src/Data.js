@@ -152,7 +152,7 @@ ValueRepresentation.prototype.getFields = function (fields) {
   }
 
   if (!valid) {
-    throw 'Value exceeds max length';
+    //throw 'Value exceeds max length';
   }
 
   // Check for odd
