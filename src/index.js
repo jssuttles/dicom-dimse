@@ -1,4 +1,3 @@
-import Future from 'fibers/future';
 import Connection from './Connection.js';
 import C from './constants.js';
 
@@ -37,91 +36,86 @@ DIMSE.associate = function (contexts, callback, options) {
 };
 
 DIMSE.retrievePatients = function (params, options) {
+  return new Promise((resolve) => {
+    DIMSE.associate([C.SOP_PATIENT_ROOT_FIND], function (error, pdu) {
+      if (error) {
+        console.error('Could not retrieve patients');
+        console.trace();
 
-  const future = new Future();
+        return resolve([]);
+      }
 
-  DIMSE.associate([C.SOP_PATIENT_ROOT_FIND], function (error, pdu) {
-    if (error) {
-      console.error('Could not retrieve patients');
-      console.trace();
+      const defaultParams = {
+        0x00100010: '',
+        0x00100020: '',
+        0x00100030: '',
+        0x00100040: '',
+        0x00101010: '',
+        0x00101040: ''
+      };
 
-      return future.return([]);
-    }
+      const result = this.findPatients(Object.assign(defaultParams, params));
+      const self = this;
+      const patients = [];
 
-    const defaultParams = {
-      0x00100010: '',
-      0x00100020: '',
-      0x00100030: '',
-      0x00100040: '',
-      0x00101010: '',
-      0x00101040: ''
-    };
+      result.on('result', function (msg) {
+        patients.push(msg);
+      });
 
-    const result = this.findPatients(Object.assign(defaultParams, params));
-    const self = this;
-    const patients = [];
+      result.on('end', function () {
+        self.release();
+      });
 
-    result.on('result', function (msg) {
-      patients.push(msg);
-    });
-
-    result.on('end', function () {
-      self.release();
-    });
-
-    this.on('close', function () {
-      // Time = new Date() - start;console.log(time + 'ms taken');
-      future.return(patients);
-    });
-  }, options);
-
-  return future.wait();
+      this.on('close', function () {
+        // Time = new Date() - start;console.log(time + 'ms taken');
+        resolve(patients);
+      });
+    }, options);
+  });
 };
 
 DIMSE.retrieveStudies = function (params, options) {
   // Start = new Date();
-  const future = new Future();
+  return new Promise((resolve, reject) => {
+    DIMSE.associate([C.SOP_STUDY_ROOT_FIND], function (error, pdu) {
+      if (error) {
+        console.error('Could not retrieve studies');
+        console.trace();
 
-  DIMSE.associate([C.SOP_STUDY_ROOT_FIND], function (error, pdu) {
-    if (error) {
-      console.error('Could not retrieve studies');
-      console.trace();
+        return reject(error);
+      }
 
-      return future.throw(error);
-    }
+      const defaultParams = {
+        0x0020000D: '',
+        0x00080060: '',
+        0x00080005: '',
+        0x00080020: '',
+        0x00080030: '',
+        0x00080090: '',
+        0x00100010: '',
+        0x00100020: '',
+        0x00200010: '',
+        0x00100030: ''
+      };
 
-    const defaultParams = {
-      0x0020000D: '',
-      0x00080060: '',
-      0x00080005: '',
-      0x00080020: '',
-      0x00080030: '',
-      0x00080090: '',
-      0x00100010: '',
-      0x00100020: '',
-      0x00200010: '',
-      0x00100030: ''
-    };
+      const result = this.findStudies(Object.assign(defaultParams, params));
+      const studies = [];
+      const self = this;
 
-    const result = this.findStudies(Object.assign(defaultParams, params));
-    const studies = [];
-    const self = this;
+      result.on('result', function (msg) {
+        studies.push(msg);
+      });
 
-    result.on('result', function (msg) {
-      studies.push(msg);
-    });
+      result.on('end', function () {
+        self.release();
+      });
 
-    result.on('end', function () {
-      self.release();
-    });
-
-    this.on('close', function () {
-      // Time = new Date() - start;console.log(time + 'ms taken');
-      future.return(studies);
-    });
-  }, options);
-
-  return future.wait();
+      this.on('close', function () {
+        // Time = new Date() - start;console.log(time + 'ms taken');
+        resolve(studies);
+      });
+    }, options);
+  });
 };
 
 DIMSE._retrieveInstancesBySeries = function (conn, series, studyInstanceUID, callback, params) {
@@ -164,136 +158,130 @@ DIMSE.retrieveInstancesByStudyOnlyMulti = function (studyInstanceUID, params, op
 
 DIMSE.retrieveInstancesByStudyOnly = function (studyInstanceUID, params, options) {
   if (!studyInstanceUID) {
-    return [];
+    return Promise.resolve([]);
   }
 
-  const future = new Future();
+  return new Promise((resolve, reject) => {
+    DIMSE.associate([C.SOP_STUDY_ROOT_FIND], function (error, pdu) {
+      if (error) {
+        console.error('Could not retrieve Instances By Study');
+        console.trace();
 
-  DIMSE.associate([C.SOP_STUDY_ROOT_FIND], function (error, pdu) {
-    if (error) {
-      console.error('Could not retrieve Instances By Study');
-      console.trace();
-
-      return future.throw(error);
-    }
-
-    const defaultParams = {
-      0x0020000D: studyInstanceUID,
-      0x00080005: '',
-      0x00080020: '',
-      0x00080030: '',
-      0x00080090: '',
-      0x00100010: '',
-      0x00100020: '',
-      0x00200010: '',
-      0x0008103E: '',
-      0x0020000E: '',
-      0x00200011: ''
-    };
-    const result = this.findSeries(Object.assign(defaultParams, params));
-    const series = [];
-    const conn = this;
-    let allInstances = [];
-
-    result.on('result', function (msg) {
-      series.push(msg);
-    });
-    result.on('end', function () {
-      if (series.length > 0) {
-        DIMSE._retrieveInstancesBySeries(conn, series, studyInstanceUID, function (relatedInstances, isEnd) {
-          allInstances = allInstances.concat(relatedInstances);
-          if (isEnd) {
-            conn.release();
-          }
-        });
-      } else {
-        conn.release();
+        return reject(error);
       }
-    });
-    conn.on('close', function () {
-      future.return(allInstances);
+
+      const defaultParams = {
+        0x0020000D: studyInstanceUID,
+        0x00080005: '',
+        0x00080020: '',
+        0x00080030: '',
+        0x00080090: '',
+        0x00100010: '',
+        0x00100020: '',
+        0x00200010: '',
+        0x0008103E: '',
+        0x0020000E: '',
+        0x00200011: ''
+      };
+      const result = this.findSeries(Object.assign(defaultParams, params));
+      const series = [];
+      const conn = this;
+      let allInstances = [];
+
+      result.on('result', function (msg) {
+        series.push(msg);
+      });
+      result.on('end', function () {
+        if (series.length > 0) {
+          DIMSE._retrieveInstancesBySeries(conn, series, studyInstanceUID, function (relatedInstances, isEnd) {
+            allInstances = allInstances.concat(relatedInstances);
+            if (isEnd) {
+              conn.release();
+            }
+          });
+        } else {
+          conn.release();
+        }
+      });
+      conn.on('close', function () {
+        resolve(allInstances);
+      });
     });
   });
-
-  return future.wait();
 };
 
 DIMSE.retrieveSeries = function (studyInstanceUID, params, options) {
-  const future = new Future();
+  return new Promise((resolve) => {
+    DIMSE.associate([C.SOP_STUDY_ROOT_FIND], function (error, pdu) {
+      if (error) {
+        console.error('Could not retrieve series');
+        console.trace();
 
-  DIMSE.associate([C.SOP_STUDY_ROOT_FIND], function (error, pdu) {
-    if (error) {
-      console.error('Could not retrieve series');
-      console.trace();
+        return resolve([]);
+      }
 
-      return future.return([]);
-    }
+      const defaultParams = {
+        0x0020000D: studyInstanceUID ? studyInstanceUID : '',
+        0x00080005: '',
+        0x00080020: '',
+        0x00080030: '',
+        0x00080090: '',
+        0x00100010: '',
+        0x00100020: '',
+        0x00200010: '',
+        0x0008103E: '',
+        0x0020000E: '',
+        0x00200011: ''
+      };
 
-    const defaultParams = {
-      0x0020000D: studyInstanceUID ? studyInstanceUID : '',
-      0x00080005: '',
-      0x00080020: '',
-      0x00080030: '',
-      0x00080090: '',
-      0x00100010: '',
-      0x00100020: '',
-      0x00200010: '',
-      0x0008103E: '',
-      0x0020000E: '',
-      0x00200011: ''
-    };
+      const result = this.findSeries(Object.assign(defaultParams, params));
+      const self = this;
+      const series = [];
 
-    const result = this.findSeries(Object.assign(defaultParams, params));
-    const self = this;
-    const series = [];
+      result.on('result', function (msg) {
+        series.push(msg);
+      });
 
-    result.on('result', function (msg) {
-      series.push(msg);
-    });
+      result.on('end', function () {
+        self.release();
+      });
 
-    result.on('end', function () {
-      self.release();
-    });
-
-    this.on('close', function () {
-      future.return(series);
-    });
-  }, options);
-
-  return future.wait();
+      this.on('close', function () {
+        resolve(series);
+      });
+    }, options);
+  });
 };
 
 DIMSE.retrieveInstances = function (studyInstanceUID, seriesInstanceUID, params, options) {
-  const future = new Future();
+  return new Promise((resolve, reject) => {
+    DIMSE.associate([C.SOP_STUDY_ROOT_FIND], function (error, pdu) {
+      if (error) {
+        console.error('Could not retrieve instances');
+        console.trace();
 
-  DIMSE.associate([C.SOP_STUDY_ROOT_FIND], function (error, pdu) {
-    if (error) {
-      console.error('Could not retrieve instances');
-      console.trace();
+        return reject(error);
+      }
 
-      return future.throw(error);
-    }
+      const defaultParams = getInstanceRetrievalParams(studyInstanceUID, seriesInstanceUID);
+      const result = this.findInstances(Object.assign(defaultParams, params));
+      const self = this;
 
-    const defaultParams = getInstanceRetrievalParams(studyInstanceUID, seriesInstanceUID);
-    const result = this.findInstances(Object.assign(defaultParams, params));
-    const self = this;
+      const instances = [];
 
-    const instances = [];
+      result.on('result', function (msg) {
+        instances.push(msg);
+      });
 
-    result.on('result', function (msg) {
-      instances.push(msg);
-    });
+      result.on('end', function () {
+        self.release();
+      });
 
-    result.on('end', function () {
-      self.release();
-    });
-
-    this.on('close', function () {
-      future.return(instances);
-    });
-  }, options);
-
-  return future.wait();
+      this.on('close', function () {
+        resolve(instances);
+      });
+    }, options);
+  });
 };
 
 DIMSE.storeInstances = function (fileList, callback) {
