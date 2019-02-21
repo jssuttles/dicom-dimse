@@ -35,8 +35,8 @@ DIMSE.associate = function (contexts, callback, options) {
   });
 };
 
-DIMSE.retrievePatients = function (params, options) {
-  return new Promise((resolve) => {
+DIMSE.retrievePatients = async function (params, options) {
+  return await new Promise((resolve) => {
     DIMSE.associate([C.SOP_PATIENT_ROOT_FIND], function (error, pdu) {
       if (error) {
         console.error('Could not retrieve patients');
@@ -74,9 +74,9 @@ DIMSE.retrievePatients = function (params, options) {
   });
 };
 
-DIMSE.retrieveStudies = function (params, options) {
+DIMSE.retrieveStudies = async function (params, options) {
   // Start = new Date();
-  return new Promise((resolve, reject) => {
+  return await new Promise((resolve, reject) => {
     DIMSE.associate([C.SOP_STUDY_ROOT_FIND], function (error, pdu) {
       if (error) {
         console.error('Could not retrieve studies');
@@ -156,12 +156,12 @@ DIMSE.retrieveInstancesByStudyOnlyMulti = function (studyInstanceUID, params, op
   return instances;
 };
 
-DIMSE.retrieveInstancesByStudyOnly = function (studyInstanceUID, params, options) {
+DIMSE.retrieveInstancesByStudyOnly = async function (studyInstanceUID, params, options) {
   if (!studyInstanceUID) {
     return Promise.resolve([]);
   }
 
-  return new Promise((resolve, reject) => {
+  return await new Promise((resolve, reject) => {
     DIMSE.associate([C.SOP_STUDY_ROOT_FIND], function (error, pdu) {
       if (error) {
         console.error('Could not retrieve Instances By Study');
@@ -210,8 +210,8 @@ DIMSE.retrieveInstancesByStudyOnly = function (studyInstanceUID, params, options
   });
 };
 
-DIMSE.retrieveSeries = function (studyInstanceUID, params, options) {
-  return new Promise((resolve) => {
+DIMSE.retrieveSeries = async function (studyInstanceUID, params, options) {
+  return await new Promise((resolve) => {
     DIMSE.associate([C.SOP_STUDY_ROOT_FIND], function (error, pdu) {
       if (error) {
         console.error('Could not retrieve series');
@@ -253,8 +253,8 @@ DIMSE.retrieveSeries = function (studyInstanceUID, params, options) {
   });
 };
 
-DIMSE.retrieveInstances = function (studyInstanceUID, seriesInstanceUID, params, options) {
-  return new Promise((resolve, reject) => {
+DIMSE.retrieveInstances = async function (studyInstanceUID, seriesInstanceUID, params, options) {
+  return await new Promise((resolve, reject) => {
     DIMSE.associate([C.SOP_STUDY_ROOT_FIND], function (error, pdu) {
       if (error) {
         console.error('Could not retrieve instances');
@@ -292,7 +292,7 @@ DIMSE.storeInstances = function (fileList, callback) {
   });
 };
 
-DIMSE.moveInstances = function (studyInstanceUID, seriesInstanceUID, sopInstanceUID, sopClassUID, params) {
+DIMSE.moveInstances = async function (studyInstanceUID, seriesInstanceUID, sopInstanceUID, sopClassUID, params) {
   DIMSE.associate([C.SOP_STUDY_ROOT_MOVE, sopClassUID], function (error) {
     if (error) {
       console.error('Could not move instances');
