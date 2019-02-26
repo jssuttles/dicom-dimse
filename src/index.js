@@ -292,7 +292,7 @@ DIMSE.storeInstances = function (fileList, callback) {
   });
 };
 
-DIMSE.moveInstances = async function (studyInstanceUID, seriesInstanceUID, sopInstanceUID, sopClassUID, params) {
+DIMSE.moveInstances = async function (studyInstanceUID, seriesInstanceUID, sopInstanceUID, sopClassUID, params, destinationAETitle) {
   DIMSE.associate([C.SOP_STUDY_ROOT_MOVE, sopClassUID], function (error) {
     if (error) {
       console.error('Could not move instances');
@@ -307,7 +307,7 @@ DIMSE.moveInstances = async function (studyInstanceUID, seriesInstanceUID, sopIn
       0x00080018: sopInstanceUID ? sopInstanceUID : ''
     };
 
-    this.moveInstances('OHIFDCM', Object.assign(defaultParams, params));
+    this.moveInstances(destinationAETitle, Object.assign(defaultParams, params));
   });
 };
 
