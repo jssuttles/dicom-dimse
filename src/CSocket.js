@@ -81,7 +81,7 @@ const CSocket = function (socket, options) {
     console.error(socketError.stack);
     console.trace();
 
-    o.emit('error', new Error('server-internal-error', socketError.message));
+    o.emit('error', new Error(`server-internal-error: ${socketError.message}`));
   });
 
   this.socket.on('timeout', function (socketError) {
@@ -89,7 +89,7 @@ const CSocket = function (socket, options) {
     console.error(socketError.stack);
     console.trace();
 
-    o.emit('error', new Error('server-connection-error', socketError.message));
+    o.emit('error', new Error(`server-connection-error: ${socketError.message}`));
   });
 
   this.socket.on('close', function () {

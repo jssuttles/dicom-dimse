@@ -17317,7 +17317,7 @@ const CSocket = function (socket, options) {
     console.error(socketError.stack);
     console.trace();
 
-    o.emit('error', new Error('server-internal-error', socketError.message));
+    o.emit('error', new Error(`server-internal-error: ${socketError.message}`));
   });
 
   this.socket.on('timeout', function (socketError) {
@@ -17325,7 +17325,7 @@ const CSocket = function (socket, options) {
     console.error(socketError.stack);
     console.trace();
 
-    o.emit('error', new Error('server-connection-error', socketError.message));
+    o.emit('error', new Error(`server-connection-error: ${socketError.message}`));
   });
 
   this.socket.on('close', function () {
@@ -32852,7 +32852,7 @@ DIMSE.storeInstances = function (fileList, callback) {
   });
 };
 
-DIMSE.moveInstances = async function (studyInstanceUID, seriesInstanceUID, sopInstanceUID, sopClassUID, params) {
+DIMSE.moveInstances = async function (studyInstanceUID, seriesInstanceUID, sopInstanceUID, sopClassUID, params, destinationAETitle) {
   DIMSE.associate([_constants_js__WEBPACK_IMPORTED_MODULE_1__["default"].SOP_STUDY_ROOT_MOVE, sopClassUID], function (error) {
     if (error) {
       console.error('Could not move instances');
@@ -32867,7 +32867,7 @@ DIMSE.moveInstances = async function (studyInstanceUID, seriesInstanceUID, sopIn
       0x00080018: sopInstanceUID ? sopInstanceUID : ''
     };
 
-    this.moveInstances('OHIFDCM', Object.assign(defaultParams, params));
+    this.moveInstances(destinationAETitle, Object.assign(defaultParams, params));
   });
 };
 
